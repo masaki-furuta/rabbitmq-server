@@ -504,13 +504,12 @@ single_active_prop(Conf0, Commands, ValidateOrder) ->
     try run_log(test_init(Conf), Entries, Invariant) of
         {_State, Effects} when ValidateOrder ->
             %% validate message ordering
-            Final = lists:foldl(fun ({send_msg, Pid, {delivery, Tag, Msgs}, ra_event},
-                                     Acc) ->
-                                        validate_msg_order({Tag, Pid}, Msgs, Acc);
-                                    (_, Acc) ->
-                                        Acc
-                                end, -1, Effects),
-            ct:pal("Final: ~p~n", [Final]),
+            lists:foldl(fun ({send_msg, Pid, {delivery, Tag, Msgs}, ra_event},
+                             Acc) ->
+                                validate_msg_order({Tag, Pid}, Msgs, Acc);
+                            (_, Acc) ->
+                                Acc
+                        end, -1, Effects),
             true;
         _ ->
             true
@@ -655,7 +654,6 @@ expand(Ops) ->
     expand(Ops, {undefined, fun ra_lib:id/1}).
 
 expand(Ops, EnqFun) ->
-    ct:pal("OPs  ~w", [Ops]),
     %% execute each command against a rabbit_fifo state and capture all relevant
     %% effects
     T = #t{enq_body_fun = EnqFun},
@@ -685,7 +683,6 @@ handle_op({enqueue, Pid, When, Data},
             Cmd = rabbit_fifo:make_enqueue(Pid, MsgSeq, Msg),
             case When of
                 enqueue ->
-                    % ct:pal("ENQ  ~w", [Cmd]),
                     do_apply(Cmd, T#t{enqueuers = Enqs,
                                       enq_body_fun = {EnqSt, Fun}});
                 delay ->
@@ -774,7 +771,6 @@ do_apply(Cmd, #t{effects = Effs,
                  log = Log} = T) ->
     case Cmd of
         {enqueue, Pid, _, _} when is_map_key(Pid, Down) ->
-            ct:pal("Pid ~w is donw ~w", [Pid, Down]),
             %% down
             T;
         _ ->
